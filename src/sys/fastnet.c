@@ -1,6 +1,7 @@
-
-
-
+/*
+ *
+ *
+ */
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -23,8 +24,7 @@
 static int skel_open(dev_t *devp, int flag, int otyp, cred_t *cred);
 static int skel_read(dev_t dev, struct uio *uiop, cred_t *credp);
 static int skel_write(dev_t dev, struct uio *uiop, cred_t *credp);
-static int skel_getinfo(dev_info_t *dip, ddi_info_cmd_t infocmd, void *arg,
-        void **result);
+static int skel_getinfo(dev_info_t *dip, ddi_info_cmd_t infocmd, void *arg, void **result);
 static int skel_attach(dev_info_t *dip, ddi_attach_cmd_t cmd);
 static int skel_detach(dev_info_t *dip, ddi_detach_cmd_t cmd);
 
@@ -81,7 +81,7 @@ static struct modldrv modldrv = { /* see modldrv(9s) */
     "skeleton driver v1.0",
     &skel_ops
 };
-static struct modlinkage modlinkage = { /* see modlinkage(9s) *//
+static struct modlinkage modlinkage = { /* see modlinkage(9s) */
     MODREV_1,
     &modldrv,
     0
@@ -161,6 +161,12 @@ skel_detach(dev_info_t *dip, ddi_detach_cmd_t cmd)
         default:
             return (DDI_FAILURE);
     }
+}
+
+static int
+skel_getinfo(dev_info_t *dip, ddi_info_cmd_t infocmd, void *arg, void **result)
+{
+	return (DDI_SUCCESS);
 }
 
 /*ARGSUSED*/
