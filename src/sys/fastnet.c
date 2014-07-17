@@ -144,7 +144,7 @@ skel_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
     skel_devstate_t *rsp;
     switch (cmd) {
         case DDI_ATTACH:
-            if (ddi_one != NULL) {
+            if (dip_one != NULL) {
                 cmn_err(CE_WARN, "Single instance of driver is already attached\n");
                 return (DDI_FAILURE);
             }
@@ -163,7 +163,7 @@ skel_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
             dip_one = dip;
             ddi_report_dev(dip);
             strcpy(umem_all.name, "hallo");
-            umem_all.size = 2;
+            umem_all.size = 4*1024;
             cmn_err(CE_WARN, "Successful to attach the fastnet driver\n");
             return (DDI_SUCCESS);
         default:
@@ -186,7 +186,7 @@ skel_detach(dev_info_t *dip, ddi_detach_cmd_t cmd)
             rsp = ddi_get_soft_state(skel_state, instance);
             ddi_remove_minor_node(dip, NULL);
             ddi_soft_state_free(skel_state, instance);
-            ddi_one = NULL;
+            dip_one = NULL;
             return (DDI_SUCCESS);
         default:
             return (DDI_FAILURE);
@@ -291,7 +291,7 @@ skel_do_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, umem_t 
     if (memory_size_alloc != umem->size) {
         memory_size_alloc = umem->size;
     }
-    base = ddi_umem_alloc(memory_size_alloc, DDI_UMEM_SLEEP, &umem->cookie);
+    base = ddi_umem_alloc(memory_size_alloc, DDI_UMEM_SLEEP|DDI_UMEM_PAGEABLE, &umem->cookie);
     ASSERT(base != NULL);
     ASSERT(umem->cookie != NULL);
     strcpy(base, "haha");

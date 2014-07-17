@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <errno.h>
 #include "fastnet.h"
 
 int 
@@ -15,8 +16,8 @@ main(int argc, char *argv[])
 
 	printf("The status from the kernel is %d\n", fs.status);
 
-	if ((buf = mmap(NULL, 2, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED) {
-		printf("Can not map, the error code is : %d\n", rval);
+	if ((buf = mmap((caddr_t)NULL, 4*1024, PROT_READ, (MAP_SHARED|MAP_ALIGN), fd, (off_t)0)) == MAP_FAILED) {
+		printf("Can not map, the error code is : %d\n", errno);
 	} else {
 		printf("Success to map the memory, buf = %s\n", buf);
 		munmap(buf, 2);
