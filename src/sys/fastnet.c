@@ -144,21 +144,26 @@ skel_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
     skel_devstate_t *rsp;
     switch (cmd) {
         case DDI_ATTACH:
+            if (ddi_one != NULL) {
+                cmn_err(CE_WARN, "Single instance of driver is already attached\n");
+                return (DDI_FAILURE);
+            }
             instance = ddi_get_instance(dip);
             if (ddi_soft_state_zalloc(skel_state, instance) != DDI_SUCCESS) {
                 cmn_err(CE_CONT, "%s%d: can't allocate state\n", ddi_get_name(dip), instance);
                 return (DDI_FAILURE);
             } else
                 rsp = ddi_get_soft_state(skel_state, instance);
+
             if (ddi_create_minor_node(dip, "skel", S_IFCHR, instance, DDI_PSEUDO, 0) == DDI_FAILURE) {
                 ddi_remove_minor_node(dip, NULL);
                 goto attach_failed;
             }
             rsp->dip = dip;
-	    dip_one = dip;
+            dip_one = dip;
             ddi_report_dev(dip);
             strcpy(umem_all.name, "hallo");
-            umem_all.size = 4096;
+            umem_all.size = 2;
             cmn_err(CE_WARN, "Successful to attach the fastnet driver\n");
             return (DDI_SUCCESS);
         default:
@@ -181,6 +186,7 @@ skel_detach(dev_info_t *dip, ddi_detach_cmd_t cmd)
             rsp = ddi_get_soft_state(skel_state, instance);
             ddi_remove_minor_node(dip, NULL);
             ddi_soft_state_free(skel_state, instance);
+            ddi_one = NULL;
             return (DDI_SUCCESS);
         default:
             return (DDI_FAILURE);
