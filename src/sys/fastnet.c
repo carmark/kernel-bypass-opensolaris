@@ -51,7 +51,7 @@ typedef struct umem_s {
     ddi_umem_cookie_t cookie;
 } umem_t;
 
-static umem_t *umem_all;
+static umem_t umem_all;
 /*
  * An opaque handle where our set of skeleton devices live
  */
@@ -154,8 +154,8 @@ skel_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
             }
             rsp->dip = dip;
             ddi_report_dev(dip);
-            strcpy(umem_all->name, "hallo");
-            umem_all->size = 4096;
+            strcpy(umem_all.name, "hallo");
+            umem_all.size = 4096;
             cmn_err(CE_WARN, "Successful to attach the fastnet driver\n");
             return (DDI_SUCCESS);
         default:
@@ -242,7 +242,7 @@ skel_ioctl(dev_t dev, int cmd, intptr_t arg, int mode, cred_t *crp, int *rvalp)
 static int
 skel_devmap_map(devmap_cookie_t dhp, dev_t dev, uint_t flags, offset_t off, size_t len, void **pvtp)
 {
-    *pvtp = umem_all;
+    *pvtp = &umem_all;
     
     return (0);
 }
@@ -256,7 +256,7 @@ skel_devmap_access(devmap_cookie_t dhp, void *pvtp, offset_t off, size_t len, ui
 static int
 skel_devmap_unmap(devmap_cookie_t dhp, void *pvtp, offset_t off, size_t len, devmap_cookie_t new_dhp1, void **new_pvtp1, devmap_cookie_t new_dhp2, void **new_pvtp2)
 {
-    ddi_umem_free(umem_all->cookie);
+    ddi_umem_free(umem_all.cookie);
 
     return (0);
 }
@@ -281,8 +281,8 @@ skel_do_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, umem_t 
     void *base;
     skel_devstate_t *rsp = ddi_get_soft_state(skel_state, instance);
 
-    if (memory_size_alloc != umem_all->size) {
-        memory_size_alloc = umem_all->size;
+    if (memory_size_alloc != umem->size) {
+        memory_size_alloc = umem->size;
     }
     base = ddi_umem_alloc(memory_size_alloc, DDI_UMEM_SLEEP, &umem->cookie);
     ASSERT(base != NULL);
@@ -304,7 +304,7 @@ static int
 skel_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, size_t *maplen, uint_t model)
 {
     int status = 0;
-    status = skel_do_devmap(dev, dhp, off, len, umem_all, maplen);
+    status = skel_do_devmap(dev, dhp, off, len, &umem_all, maplen);
 
     return status;
 }
