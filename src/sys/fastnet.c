@@ -34,6 +34,7 @@ static int skel_ioctl(dev_t dev, int cmd, intptr_t arg, int mode, cred_t *crp, i
 static int skel_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, size_t *maplen, uint_t model);
 static int skel_devmap_access(devmap_cookie_t dhp, void *pvtp, offset_t off, size_t len, uint_t type, uint_t rw);
 static int skel_devmap_unmap(devmap_cookie_t dhp, void *pvtp, offset_t off, size_t len, devmap_cookie_t new_dhp1, void **new_pvtp1, devmap_cookie_t new_dhp2, void **new_pvtp2);
+static int skel_segmap(dev_t dev, off_t off, struct as *asp, caddr_t *addrp, off_t len, unsigned int prot, unsigned int maxprot, unsigned int flags, cred_t *cred);
 
 /*
  * The entire state of each skeleton device.
@@ -51,7 +52,8 @@ typedef struct umem_s {
     ddi_umem_cookie_t cookie;
 } umem_t;
 
-static umem_t umem_all;
+umem_t umem_all;
+dev_info_t *dip_one;
 /*
  * An opaque handle where our set of skeleton devices live
  */
@@ -69,7 +71,7 @@ static struct cb_ops skel_cb_ops = {
     skel_ioctl,         /* ioctl */
     skel_devmap,        /* devmap */
     nodev,              /* mmap */
-    nodev,              /* segmap */
+    skel_segmap,        /* segmap */
     nochpoll,           /* poll */
     ddi_prop_op,
     NULL,               /* streamtab */
@@ -153,6 +155,7 @@ skel_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
                 goto attach_failed;
             }
             rsp->dip = dip;
+	    dip_one = dip;
             ddi_report_dev(dip);
             strcpy(umem_all.name, "hallo");
             umem_all.size = 4096;
@@ -277,9 +280,7 @@ skel_do_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, umem_t 
     /* Allocate memory */
     size_t memory_size_alloc = ptob(btopr(len));
     int result = 0;
-    int instance = getminor(dev);
     void *base;
-    skel_devstate_t *rsp = ddi_get_soft_state(skel_state, instance);
 
     if (memory_size_alloc != umem->size) {
         memory_size_alloc = umem->size;
@@ -290,7 +291,7 @@ skel_do_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, umem_t 
     strcpy(base, "haha");
 
     /* Share the memory to the calling user progress */
-    result = devmap_umem_setup(dhp, rsp->dip, &callbackops, umem->cookie, 0, memory_size_alloc, PROT_ALL & ~PROT_EXEC, DEVMAP_DEFAULTS, NULL);
+    result = devmap_umem_setup(dhp, dip_one, &callbackops, umem->cookie, 0, memory_size_alloc, PROT_ALL & ~PROT_EXEC, DEVMAP_DEFAULTS, NULL);
     if (result != 0) {
         cmn_err(1, "The memory can not be mapped to userland\n");
         return result;
@@ -307,4 +308,18 @@ skel_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, size_t *ma
     status = skel_do_devmap(dev, dhp, off, len, &umem_all, maplen);
 
     return status;
+} 
+
+static int
+skel_segmap(dev_t dev, off_t off, struct as *asp, caddr_t *addrp, off_t len, unsigned int prot, unsigned int maxprot, unsigned int flags, cred_t *cred)
+{
+	if (off != 0) {
+		return (EINVAL);
+	}
+
+	if (prot & PROT_EXEC) {
+		return (EACCES);
+	}
+	return (ddi_devmap_segmap(dev, 0, asp, addrp, len, prot, maxprot, flags, cred));
 }
+
