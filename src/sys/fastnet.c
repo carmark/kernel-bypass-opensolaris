@@ -1,5 +1,5 @@
 /*
- * Lei Xue
+ * Lei Xue (carmark.dlut@gmail.com)
  *
  */
 
@@ -251,7 +251,10 @@ skel_ioctl(dev_t dev, int cmd, intptr_t arg, int mode, cred_t *crp, int *rvalp)
 static int
 skel_devmap_map(devmap_cookie_t dhp, dev_t dev, uint_t flags, offset_t off, size_t len, void **pvtp)
 {
+    ASSERT(off == 0);
+
     *pvtp = &umem_all;
+    cmn_err(CE_NOTE, "PID %d mapping shared memory \"%s\" [%llu, %lu]", ddi_get_pid(), umem_all.name, off, (off + len - 1));
     
     return (0);
 }
@@ -259,6 +262,11 @@ skel_devmap_map(devmap_cookie_t dhp, dev_t dev, uint_t flags, offset_t off, size
 static int
 skel_devmap_access(devmap_cookie_t dhp, void *pvtp, offset_t off, size_t len, uint_t type, uint_t rw)
 {
+    if (pvtp == NULL) {
+	/* Process accessing invalid (partial) shared memory region */
+	cmn_err(CE_WARN, "PID %d attempted to access invalidated shared memory range [%llu, %lu]", ddi_get_pid(), off, (off + len - 1));
+	return (-1);
+    }
     return (devmap_default_access(dhp, pvtp, off, len, type, rw));
 }
 
@@ -299,7 +307,7 @@ skel_do_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, umem_t 
     /* Share the memory to the calling user progress */
     result = devmap_umem_setup(dhp, dip_one, &callbackops, umem->cookie, 0, memory_size_alloc, PROT_ALL & ~PROT_EXEC, DEVMAP_DEFAULTS, NULL);
     if (result != 0) {
-        cmn_err(1, "The memory can not be mapped to userland\n");
+        cmn_err(CE_WARN, "The memory can not be mapped to userland\n");
         return result;
     }
 
