@@ -75,7 +75,7 @@ static struct cb_ops skel_cb_ops = {
     nochpoll,           /* poll */
     ddi_prop_op,
     NULL,               /* streamtab */
-    D_NEW | D_MP,
+    D_DEVMAP | D_MP | D_64BIT,
     CB_REV,
     nodev,              /* aread */
     nodev               /* awrite */
@@ -305,7 +305,8 @@ skel_do_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, umem_t 
     strcpy(base, "haha");
 
     /* Share the memory to the calling user progress */
-    result = devmap_umem_setup(dhp, dip_one, &callbackops, umem->cookie, 0, memory_size_alloc, PROT_ALL & ~PROT_EXEC, DEVMAP_DEFAULTS, NULL);
+    /* Currently, we do not use the callback ops */
+    result = devmap_umem_setup(dhp, dip_one, NULL, umem->cookie, 0, memory_size_alloc, PROT_ALL & ~PROT_EXEC, DEVMAP_DEFAULTS, NULL);
     if (result != 0) {
         cmn_err(CE_WARN, "The memory can not be mapped to userland\n");
         return result;
@@ -336,4 +337,3 @@ skel_segmap(dev_t dev, off_t off, struct as *asp, caddr_t *addrp, off_t len, uns
 	}
 	return (ddi_devmap_segmap(dev, 0, asp, addrp, len, prot, maxprot, flags, cred));
 }
-
