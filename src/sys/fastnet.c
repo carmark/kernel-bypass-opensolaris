@@ -21,44 +21,6 @@
 
 #include "fastnet.h"
 
-/* more prototypes added as labs progress, not all are shown here */
-/* prototypes can be found in corresponding man pages (man open.9e) */
-/* and header file /usr/include/sys/devops.h */
-static int skel_open(dev_t *devp, int flag, int otyp, cred_t *cred);
-static int skel_read(dev_t dev, struct uio *uiop, cred_t *credp);
-static int skel_write(dev_t dev, struct uio *uiop, cred_t *credp);
-static int skel_getinfo(dev_info_t *dip, ddi_info_cmd_t infocmd, void *arg, void **result);
-static int skel_attach(dev_info_t *dip, ddi_attach_cmd_t cmd);
-static int skel_detach(dev_info_t *dip, ddi_detach_cmd_t cmd);
-static int skel_ioctl(dev_t dev, int cmd, intptr_t arg, int mode, cred_t *crp, int *rvalp);
-static int skel_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, size_t *maplen, uint_t model);
-static int skel_devmap_access(devmap_cookie_t dhp, void *pvtp, offset_t off, size_t len, uint_t type, uint_t rw);
-static int skel_devmap_unmap(devmap_cookie_t dhp, void *pvtp, offset_t off, size_t len, devmap_cookie_t new_dhp1, void **new_pvtp1, devmap_cookie_t new_dhp2, void **new_pvtp2);
-static int skel_segmap(dev_t dev, off_t off, struct as *asp, caddr_t *addrp, off_t len, unsigned int prot, unsigned int maxprot, unsigned int flags, cred_t *cred);
-
-/*
- * The entire state of each skeleton device.
- */
-typedef struct {
-    dev_info_t *dip; /* my devinfo handle */
-} skel_devstate_t;
-
-/*
- * Only descriptor for a shared memory region
- */
-typedef struct umem_s {
-    char name[20];
-    size_t size;
-    ddi_umem_cookie_t cookie;
-} umem_t;
-
-umem_t umem_all;
-dev_info_t *dip_one;
-/*
- * An opaque handle where our set of skeleton devices live
- */
-static void *skel_state;
-
 /* see cb_ops(9s) for details */
 static struct cb_ops skel_cb_ops = {
     skel_open,
@@ -285,6 +247,13 @@ static struct devmap_callback_ctl callbackops = {
     NULL,
     skel_devmap_unmap
 };
+
+/*
+ * Callback from the igb driver
+ * XXX need to add this kind of function
+ */
+
+
 /*
  * Real implement for devmap entry.
  */
@@ -299,10 +268,9 @@ skel_do_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len, umem_t 
     if (memory_size_alloc != umem->size) {
         memory_size_alloc = umem->size;
     }
-    base = ddi_umem_alloc(memory_size_alloc, DDI_UMEM_SLEEP|DDI_UMEM_PAGEABLE, &umem->cookie);
-    ASSERT(base != NULL);
+    ASSERT(umem->base != NULL);
     ASSERT(umem->cookie != NULL);
-    strcpy(base, "haha");
+    strcpy(umem->base, "haha");
 
     /* Share the memory to the calling user progress */
     /* Currently, we do not use the callback ops */
