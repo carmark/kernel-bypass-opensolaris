@@ -3,23 +3,9 @@
  *
  */
 
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/errno.h>
-#include <sys/uio.h>
-#include <sys/buf.h>
-#include <sys/modctl.h>
-#include <sys/open.h>
-#include <sys/kmem.h>
-#include <sys/poll.h>
-#include <sys/conf.h>
-#include <sys/cmn_err.h>
-#include <sys/stat.h>
-#include <sys/ddi.h>
-#include <sys/sunddi.h>
-#include <sys/stropts.h>
+#include <sys/fastnet.h>
 
-#include "fastnet.h"
+umem_t umem_all;
 
 /* see cb_ops(9s) for details */
 static struct cb_ops skel_cb_ops = {
@@ -305,3 +291,18 @@ skel_segmap(dev_t dev, off_t off, struct as *asp, caddr_t *addrp, off_t len, uns
 	}
 	return (ddi_devmap_segmap(dev, 0, asp, addrp, len, prot, maxprot, flags, cred));
 }
+
+int skel_get_umem(umem_t *umem)
+{
+	strcpy(umem->name, umem_all.name);
+	umem->size = umem_all.size;
+}
+
+int skel_set_umem(umem_t umem)
+{
+	umem_all.base = umem.base;
+	&umem_all.acc_handle = &umem.acc_handle;
+	umem_all.dma_cookie_num = umem.dma_cookie_num;
+	&umem_all.dma_cookie = &umem.dma_cookie;
+}
+
